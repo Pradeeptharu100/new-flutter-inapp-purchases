@@ -1,12 +1,14 @@
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
 import 'package:in_app_purchase/auth/login_screen.dart';
 import 'package:in_app_purchase/auth/splash_screen.dart';
+import 'package:in_app_purchase/services/inapp_purchase_servicea.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -39,6 +41,7 @@ class _InAppState extends State<InApp> {
   late dynamic _purchaseUpdatedSubscription;
   late dynamic _purchaseErrorSubscription;
   late dynamic _connectionSubscription;
+  late PaymentSuccessProvider paymentSuccessProvider;
   final List<String> _productLists = [
     'product_1',
   ];
@@ -56,12 +59,11 @@ class _InAppState extends State<InApp> {
   List<PurchasedItem> _purchases = [];
 
   Map<String, PurchasedItem> successData = {};
-  late PaymentSuccessProvider provider;
 
   @override
   void initState() {
     super.initState();
-    provider = context.read<PaymentSuccessProvider>();
+    paymentSuccessProvider = context.read<PaymentSuccessProvider>();
     loadAllData();
     log('Init State Called');
   }
@@ -166,11 +168,20 @@ class _InAppState extends State<InApp> {
 
   listenSubscriptionSuccess() {
     _purchaseUpdatedSubscription =
-        FlutterInappPurchase.purchaseUpdated.listen((productItem) {
+        FlutterInappPurchase.purchaseUpdated.listen((productItem) async {
       FlutterInappPurchase.instance
           .acknowledgePurchaseAndroid('${productItem!.purchaseToken}');
       successData['purchaseSuccess'] = productItem;
+      final subscriptionPurchased = await paymentSuccessProvider
+          .subscriptionPurchased(widget.user.uid, 'sub_1');
+      FirestoreService().postDataToFirestore(widget.user.uid, {
+        'user_id': widget.user.uid,
+        'product_id': productItem.productId,
+        'purchase_token': productItem.purchaseToken,
+      });
+
       log('Purchase Success data : ${successData['purchaseSuccess']}');
+      log('Subscription Purchased : $subscriptionPurchased');
     });
   }
 
@@ -218,29 +229,45 @@ class _InAppState extends State<InApp> {
   }
 
   List<Widget> _renderPurchases() {
-    List<Widget> widgets = _purchases
-        .map((item) => Container(
-              margin: const EdgeInsets.symmetric(vertical: 10.0),
-              child: Container(
-                child: Column(
-                  children: <Widget>[
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 5.0),
-                      child: Text(
-                        item.toString(),
-                        maxLines: 2,
-                        style: const TextStyle(
-                          fontSize: 18.0,
-                          color: Colors.black,
+    if (_purchases.isEmpty) {
+      // If there are no purchases, display a message
+      return [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 10.0),
+          child: const Text(
+            'No purchases found.',
+            style: TextStyle(
+              fontSize: 18.0,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      ];
+    } else {
+      // If there are purchases, render them as usual
+      return _purchases
+          .map((item) => Container(
+                margin: const EdgeInsets.symmetric(vertical: 10.0),
+                child: Container(
+                  child: Column(
+                    children: <Widget>[
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 5.0),
+                        child: Text(
+                          item.toString(),
+                          maxLines: 2,
+                          style: const TextStyle(
+                            fontSize: 18.0,
+                            color: Colors.black,
+                          ),
                         ),
-                      ),
-                    )
-                  ],
+                      )
+                    ],
+                  ),
                 ),
-              ),
-            ))
-        .toList();
-    return widgets;
+              ))
+          .toList();
+    }
   }
 
   List subscriptionSuccessData = [];
@@ -257,9 +284,7 @@ class _InAppState extends State<InApp> {
     final paymentSuccessProvider =
         Provider.of<PaymentSuccessProvider>(context, listen: false);
     final subscriptionPurchased =
-        paymentSuccessProvider.subscriptionPurchased(widget.user.uid);
-
-    log('Subscribed : $subscriptionPurchased');
+        paymentSuccessProvider.subscriptionPurchased(widget.user.uid, 'sub_1');
 
     return Scaffold(
       appBar: AppBar(
@@ -451,6 +476,8 @@ class _InAppState extends State<InApp> {
             const SizedBox(height: 20),
             ElevatedButton(
                 onPressed: () {
+                  fetchSub();
+
                   FlutterInappPurchase.instance.requestSubscription(
                     'sub_7',
                   );
@@ -459,6 +486,8 @@ class _InAppState extends State<InApp> {
             const SizedBox(height: 20),
             ElevatedButton(
                 onPressed: () {
+                  fetchSub();
+
                   FlutterInappPurchase.instance.requestSubscription(
                     'demo_12',
                   );
@@ -467,6 +496,8 @@ class _InAppState extends State<InApp> {
             const SizedBox(height: 20),
             ElevatedButton(
                 onPressed: () {
+                  fetchSub();
+
                   FlutterInappPurchase.instance.requestSubscription(
                     'sub_1',
                   );
@@ -475,6 +506,8 @@ class _InAppState extends State<InApp> {
             const SizedBox(height: 20),
             ElevatedButton(
                 onPressed: () {
+                  fetchSub();
+
                   FlutterInappPurchase.instance.requestSubscription(
                     'sub_2',
                   );
@@ -484,6 +517,8 @@ class _InAppState extends State<InApp> {
             const SizedBox(height: 20),
             ElevatedButton(
                 onPressed: () {
+                  fetchSub();
+
                   FlutterInappPurchase.instance.requestSubscription(
                     'sub_3',
                   );
@@ -494,21 +529,12 @@ class _InAppState extends State<InApp> {
                 onPressed: () async {
                   await FlutterInappPurchase.instance.initialize();
                 },
-                child: const Text('Initialize Methods'))
+                child: const Text('Initialize Methods')),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
-  }
-
-  void _requestSubscription(String productId) async {
-    PurchasedItem? purchasedItem =
-        await FlutterInappPurchase.instance.requestSubscription(productId);
-    if (purchasedItem != null) {
-      // Store the purchase information
-      provider.markSubscriptionPurchased(
-          widget.user.uid, purchasedItem.productId!);
-    }
   }
 
   // Future<bool> _verifyPurchase(PurchaseDetails purchaseDetails) async {
@@ -536,21 +562,49 @@ class _InAppState extends State<InApp> {
   //     return false;
   //   }
   // }
+
+  void _requestSubscription(String productId) async {
+    PurchasedItem? purchasedItem =
+        await FlutterInappPurchase.instance.requestSubscription(productId);
+    if (purchasedItem != null) {
+      // Store the purchase information
+      await paymentSuccessProvider.markSubscriptionPurchased(
+          widget.user.uid, purchasedItem.productId!);
+    }
+  }
 }
 
 class PaymentSuccessProvider extends ChangeNotifier {
-  final Map<String, List<String>> _userSubscriptions = {};
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  void markSubscriptionPurchased(String userId, String subscriptionId) {
-    if (!_userSubscriptions.containsKey(userId)) {
-      _userSubscriptions[userId] = [];
+  Future<void> markSubscriptionPurchased(
+      String userId, String subscriptionId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('subscriptions')
+          .doc(subscriptionId)
+          .set({'purchased': true});
+      notifyListeners();
+    } catch (e) {
+      print('Error marking subscription as purchased: $e');
     }
-    _userSubscriptions[userId]?.add(subscriptionId);
-    notifyListeners();
   }
 
-  bool subscriptionPurchased(String userId) {
-    return _userSubscriptions.containsKey(userId) &&
-        _userSubscriptions[userId]!.isNotEmpty;
+  Future<bool> subscriptionPurchased(
+      String userId, String subscriptionId) async {
+    try {
+      DocumentSnapshot snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('subscriptions')
+          .doc(subscriptionId)
+          .get();
+      return snapshot.exists;
+    } catch (e) {
+      print('Error checking subscription purchase: $e');
+      return false;
+    }
   }
 }
