@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -24,7 +23,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => PaymentSuccessProvider(),
-      child: const MaterialApp(title: 'Flutter Demo', home: SplashScreen()),
+      child: const MaterialApp(
+        title: 'Flutter Demo',
+        home: SplashScreen(),
+      ),
     );
   }
 }
@@ -63,7 +65,10 @@ class _InAppState extends State<InApp> {
   @override
   void initState() {
     super.initState();
+    _getPurchases();
+    FirestoreService().getSubscriptionData(widget.user.uid, context);
     paymentSuccessProvider = context.read<PaymentSuccessProvider>();
+
     loadAllData();
     log('Init State Called');
   }
@@ -80,7 +85,6 @@ class _InAppState extends State<InApp> {
   loadAllData() {
     initPlatformState();
     _getProduct();
-    _getPurchases();
     fetchSub();
   }
 
@@ -122,7 +126,7 @@ class _InAppState extends State<InApp> {
     List<IAPItem> items =
         await FlutterInappPurchase.instance.getProducts(_productLists);
     for (var item in items) {
-      log('Get Product : ${item.toString()}');
+      // log('Get Product : ${item.toString()}');
       _items.add(item);
     }
 
@@ -136,7 +140,7 @@ class _InAppState extends State<InApp> {
     List<PurchasedItem>? items =
         await FlutterInappPurchase.instance.getAvailablePurchases();
     for (var item in items!) {
-      log('Purchase List : ${item.toString()}');
+      // log('Purchase List : ${item.toString()}');
       _purchases.add(item);
     }
 
@@ -161,9 +165,8 @@ class _InAppState extends State<InApp> {
   }
 
   fetchSub() {
-    final data =
-        FlutterInappPurchase.instance.getSubscriptions(_subscriptionLists);
-    log('Subscription Data : ${data.then((value) => log('Subscription product List : $value'))}');
+    FlutterInappPurchase.instance.getSubscriptions(_subscriptionLists);
+    // log('Subscription Data : ${data.then((value) => log('Subscription product List : $value'))}');
   }
 
   listenSubscriptionSuccess() {
@@ -172,16 +175,15 @@ class _InAppState extends State<InApp> {
       FlutterInappPurchase.instance
           .acknowledgePurchaseAndroid('${productItem!.purchaseToken}');
       successData['purchaseSuccess'] = productItem;
-      final subscriptionPurchased = await paymentSuccessProvider
-          .subscriptionPurchased(widget.user.uid, 'sub_1');
       FirestoreService().postDataToFirestore(widget.user.uid, {
         'user_id': widget.user.uid,
         'product_id': productItem.productId,
         'purchase_token': productItem.purchaseToken,
+        'date': productItem.transactionDate,
       });
 
-      log('Purchase Success data : ${successData['purchaseSuccess']}');
-      log('Subscription Purchased : $subscriptionPurchased');
+      log('Purchase Success data : ${successData['purchaseSuccess']!.transactionDate}');
+      // log('Subscription Purchased : $subscriptionPurchased');
     });
   }
 
@@ -275,16 +277,8 @@ class _InAppState extends State<InApp> {
   @override
   Widget build(BuildContext context) {
     // log('Success :${successData['purchaseSuccess']}');
-    log('Purchase Token :${successData['purchaseSuccess']?.purchaseToken}');
-    log('Purchased Id :${successData['purchaseSuccess']?.transactionId}');
-
     double screenWidth = MediaQuery.of(context).size.width - 20;
     double buttonWidth = (screenWidth / 3) - 20;
-
-    final paymentSuccessProvider =
-        Provider.of<PaymentSuccessProvider>(context, listen: false);
-    final subscriptionPurchased =
-        paymentSuccessProvider.subscriptionPurchased(widget.user.uid, 'sub_1');
 
     return Scaffold(
       appBar: AppBar(
