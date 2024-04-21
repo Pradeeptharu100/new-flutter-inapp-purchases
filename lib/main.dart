@@ -1,11 +1,19 @@
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
+import 'package:in_app_purchase/auth/login_screen.dart';
+import 'package:in_app_purchase/auth/splash_screen.dart';
 import 'package:provider/provider.dart';
 
-void main() => runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -14,20 +22,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => PaymentSuccessProvider(),
-      child: MaterialApp(
-        title: 'Flutter Demo',
-        home: Scaffold(
-            appBar: AppBar(
-              title: const Text('Flutter Inapp Plugin by dooboolab'),
-            ),
-            body: const InApp()),
-      ),
+      child: const MaterialApp(title: 'Flutter Demo', home: SplashScreen()),
     );
   }
 }
 
 class InApp extends StatefulWidget {
-  const InApp({super.key});
+  const InApp({super.key, required this.user});
+  final User user;
 
   @override
   _InAppState createState() => _InAppState();
@@ -46,7 +48,8 @@ class _InAppState extends State<InApp> {
     'sub_1',
     'sub_4',
     'sub_5',
-    'sub_7'
+    'sub_7',
+    'demo_12',
   ];
 
   List<IAPItem> _items = [];
@@ -251,197 +254,261 @@ class _InAppState extends State<InApp> {
     double screenWidth = MediaQuery.of(context).size.width - 20;
     double buttonWidth = (screenWidth / 3) - 20;
 
-    return Container(
-      padding: const EdgeInsets.all(10.0),
-      child: ListView(
-        children: <Widget>[
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                child: Text(
-                  'Running on: ${Platform.operatingSystem} - ${Platform.operatingSystemVersion}\n',
-                  style: const TextStyle(fontSize: 18.0),
-                ),
-              ),
-              Column(
-                children: <Widget>[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                      Container(
-                        width: buttonWidth,
-                        height: 60.0,
-                        margin: const EdgeInsets.all(7.0),
-                        child: MaterialButton(
-                          color: Colors.amber,
-                          padding: const EdgeInsets.all(0.0),
-                          onPressed: () async {
-                            print("---------- Connect Billing Button Pressed");
-                            await FlutterInappPurchase.instance.initialize();
-                          },
-                          child: Container(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 20.0),
-                            alignment: const Alignment(0.0, 0.0),
-                            child: const Text(
-                              'Connect Billing',
-                              style: TextStyle(
-                                fontSize: 16.0,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: buttonWidth,
-                        height: 60.0,
-                        margin: const EdgeInsets.all(7.0),
-                        child: MaterialButton(
-                          color: Colors.amber,
-                          padding: const EdgeInsets.all(0.0),
-                          onPressed: () async {
-                            print("---------- End Connection Button Pressed");
-                            await FlutterInappPurchase.instance.finalize();
-                            if (_purchaseUpdatedSubscription != null) {
-                              _purchaseUpdatedSubscription.cancel();
-                              _purchaseUpdatedSubscription = null;
-                            }
-                            if (_purchaseErrorSubscription != null) {
-                              _purchaseErrorSubscription.cancel();
-                              _purchaseErrorSubscription = null;
-                            }
-                            setState(() {
-                              _items = [];
-                              _purchases = [];
-                            });
-                          },
-                          child: Container(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 20.0),
-                            alignment: const Alignment(0.0, 0.0),
-                            child: const Text(
-                              'End Connection',
-                              style: TextStyle(
-                                fontSize: 16.0,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+    final paymentSuccessProvider =
+        Provider.of<PaymentSuccessProvider>(context, listen: false);
+    final subscriptionPurchased =
+        paymentSuccessProvider.subscriptionPurchased(widget.user.uid);
+
+    log('Subscribed : $subscriptionPurchased');
+
+    return Scaffold(
+      appBar: AppBar(
+        actions: [
+          IconButton(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginPage(),
+                    ));
+              },
+              icon: const Icon(Icons.logout))
+        ],
+        title: const Text('Flutter Inapp Plugin by dooboolab'),
+      ),
+      body: Container(
+        padding: const EdgeInsets.all(10.0),
+        child: ListView(
+          children: <Widget>[
+            Text(
+              'Welcome, ${widget.user.email}',
+              style: const TextStyle(fontSize: 20),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: <Widget>[
+                Container(
+                  child: Text(
+                    'Running on: ${Platform.operatingSystem} - ${Platform.operatingSystemVersion}\n',
+                    style: const TextStyle(fontSize: 18.0),
                   ),
-                  Row(
+                ),
+                Column(
+                  children: <Widget>[
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
                         Container(
-                            width: buttonWidth,
-                            height: 60.0,
-                            margin: const EdgeInsets.all(7.0),
-                            child: MaterialButton(
-                              color: Colors.green,
-                              padding: const EdgeInsets.all(0.0),
-                              onPressed: () {
-                                print("---------- Get Items Button Pressed");
-                                _getProduct();
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20.0),
-                                alignment: const Alignment(0.0, 0.0),
-                                child: const Text(
-                                  'Get Items',
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                  ),
+                          width: buttonWidth,
+                          height: 60.0,
+                          margin: const EdgeInsets.all(7.0),
+                          child: MaterialButton(
+                            color: Colors.amber,
+                            padding: const EdgeInsets.all(0.0),
+                            onPressed: () async {
+                              print(
+                                  "---------- Connect Billing Button Pressed");
+                              await FlutterInappPurchase.instance.initialize();
+                            },
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20.0),
+                              alignment: const Alignment(0.0, 0.0),
+                              child: const Text(
+                                'Connect Billing',
+                                style: TextStyle(
+                                  fontSize: 16.0,
                                 ),
                               ),
-                            )),
+                            ),
+                          ),
+                        ),
                         Container(
-                            width: buttonWidth,
-                            height: 60.0,
-                            margin: const EdgeInsets.all(7.0),
-                            child: MaterialButton(
-                              color: Colors.green,
-                              padding: const EdgeInsets.all(0.0),
-                              onPressed: () {
-                                print(
-                                    "---------- Get Purchases Button Pressed");
-                                _getPurchases();
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20.0),
-                                alignment: const Alignment(0.0, 0.0),
-                                child: const Text(
-                                  'Get Purchases',
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                  ),
+                          width: buttonWidth,
+                          height: 60.0,
+                          margin: const EdgeInsets.all(7.0),
+                          child: MaterialButton(
+                            color: Colors.amber,
+                            padding: const EdgeInsets.all(0.0),
+                            onPressed: () async {
+                              print("---------- End Connection Button Pressed");
+                              await FlutterInappPurchase.instance.finalize();
+                              if (_purchaseUpdatedSubscription != null) {
+                                _purchaseUpdatedSubscription.cancel();
+                                _purchaseUpdatedSubscription = null;
+                              }
+                              if (_purchaseErrorSubscription != null) {
+                                _purchaseErrorSubscription.cancel();
+                                _purchaseErrorSubscription = null;
+                              }
+                              setState(() {
+                                _items = [];
+                                _purchases = [];
+                              });
+                            },
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20.0),
+                              alignment: const Alignment(0.0, 0.0),
+                              child: const Text(
+                                'End Connection',
+                                style: TextStyle(
+                                  fontSize: 16.0,
                                 ),
                               ),
-                            )),
-                        Container(
-                            width: buttonWidth,
-                            height: 60.0,
-                            margin: const EdgeInsets.all(7.0),
-                            child: MaterialButton(
-                              color: Colors.green,
-                              padding: const EdgeInsets.all(0.0),
-                              onPressed: () {
-                                print(
-                                    "---------- Get Purchase History Button Pressed");
-                                _getPurchaseHistory();
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20.0),
-                                alignment: const Alignment(0.0, 0.0),
-                                child: const Text(
-                                  'Get Purchase History',
-                                  style: TextStyle(
-                                    fontSize: 16.0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: <Widget>[
+                          Container(
+                              width: buttonWidth,
+                              height: 60.0,
+                              margin: const EdgeInsets.all(7.0),
+                              child: MaterialButton(
+                                color: Colors.green,
+                                padding: const EdgeInsets.all(0.0),
+                                onPressed: () {
+                                  print("---------- Get Items Button Pressed");
+                                  _getProduct();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0),
+                                  alignment: const Alignment(0.0, 0.0),
+                                  child: const Text(
+                                    'Get Items',
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )),
-                      ]),
-                ],
-              ),
-              Column(
-                children: _renderInApps(),
-              ),
-              Column(
-                children: _renderPurchases(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-              onPressed: () {
-                FlutterInappPurchase.instance.requestSubscription(
-                  'sub_7',
-                );
-              },
-              child: const Text('Plan 1')),
-          const SizedBox(height: 20),
-          ElevatedButton(
-              onPressed: () {
-                FlutterInappPurchase.instance.requestSubscription(
-                  'sub_3',
-                );
-              },
-              child: const Text('Plan 2')),
-          const SizedBox(height: 20),
-          ElevatedButton(
-              onPressed: () async {
-                await FlutterInappPurchase.instance.initialize();
-              },
-              child: const Text('Initialize Methods'))
-        ],
+                              )),
+                          Container(
+                              width: buttonWidth,
+                              height: 60.0,
+                              margin: const EdgeInsets.all(7.0),
+                              child: MaterialButton(
+                                color: Colors.green,
+                                padding: const EdgeInsets.all(0.0),
+                                onPressed: () {
+                                  print(
+                                      "---------- Get Purchases Button Pressed");
+                                  _getPurchases();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0),
+                                  alignment: const Alignment(0.0, 0.0),
+                                  child: const Text(
+                                    'Get Purchases',
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                    ),
+                                  ),
+                                ),
+                              )),
+                          Container(
+                              width: buttonWidth,
+                              height: 60.0,
+                              margin: const EdgeInsets.all(7.0),
+                              child: MaterialButton(
+                                color: Colors.green,
+                                padding: const EdgeInsets.all(0.0),
+                                onPressed: () {
+                                  print(
+                                      "---------- Get Purchase History Button Pressed");
+                                  _getPurchaseHistory();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0),
+                                  alignment: const Alignment(0.0, 0.0),
+                                  child: const Text(
+                                    'Get Purchase History',
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                    ),
+                                  ),
+                                ),
+                              )),
+                        ]),
+                  ],
+                ),
+                Column(
+                  children: _renderInApps(),
+                ),
+                Column(
+                  children: _renderPurchases(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+                onPressed: () {
+                  FlutterInappPurchase.instance.requestSubscription(
+                    'sub_7',
+                  );
+                },
+                child: const Text('Plan 1')),
+            const SizedBox(height: 20),
+            ElevatedButton(
+                onPressed: () {
+                  FlutterInappPurchase.instance.requestSubscription(
+                    'demo_12',
+                  );
+                },
+                child: const Text('Plan 2')),
+            const SizedBox(height: 20),
+            ElevatedButton(
+                onPressed: () {
+                  FlutterInappPurchase.instance.requestSubscription(
+                    'sub_1',
+                  );
+                },
+                child: const Text('Plan 3')),
+            const SizedBox(height: 20),
+            ElevatedButton(
+                onPressed: () {
+                  FlutterInappPurchase.instance.requestSubscription(
+                    'sub_2',
+                  );
+                },
+                child: const Text('Plan 4')),
+            const SizedBox(height: 20),
+            const SizedBox(height: 20),
+            ElevatedButton(
+                onPressed: () {
+                  FlutterInappPurchase.instance.requestSubscription(
+                    'sub_3',
+                  );
+                },
+                child: const Text('Plan 5')),
+            const SizedBox(height: 20),
+            ElevatedButton(
+                onPressed: () async {
+                  await FlutterInappPurchase.instance.initialize();
+                },
+                child: const Text('Initialize Methods'))
+          ],
+        ),
       ),
     );
+  }
+
+  void _requestSubscription(String productId) async {
+    PurchasedItem? purchasedItem =
+        await FlutterInappPurchase.instance.requestSubscription(productId);
+    if (purchasedItem != null) {
+      // Store the purchase information
+      provider.markSubscriptionPurchased(
+          widget.user.uid, purchasedItem.productId!);
+    }
   }
 
   // Future<bool> _verifyPurchase(PurchaseDetails purchaseDetails) async {
@@ -472,13 +539,18 @@ class _InAppState extends State<InApp> {
 }
 
 class PaymentSuccessProvider extends ChangeNotifier {
-  Map<String, PurchasedItem> _paymentSuccessData = {};
-  Map<String, PurchasedItem> get paymentSuccessData => _paymentSuccessData;
+  final Map<String, List<String>> _userSubscriptions = {};
 
-  setPaymentSuccessData(PurchasedItem data) {
-    _paymentSuccessData = data as Map<String, PurchasedItem>;
-
-    log('Payment success setter value : $paymentSuccessData');
+  void markSubscriptionPurchased(String userId, String subscriptionId) {
+    if (!_userSubscriptions.containsKey(userId)) {
+      _userSubscriptions[userId] = [];
+    }
+    _userSubscriptions[userId]?.add(subscriptionId);
     notifyListeners();
+  }
+
+  bool subscriptionPurchased(String userId) {
+    return _userSubscriptions.containsKey(userId) &&
+        _userSubscriptions[userId]!.isNotEmpty;
   }
 }
