@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "1020875221111",
+    "project_id": "in-app-purchase-540bd",
+    "storage_bucket": "in-app-purchase-540bd.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1020875221111:android:d93a7fa240509d7c3bbe72",
+        "android_client_info": {
+          "package_name": "com.flutter.in_app_purchase"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1020875221111-717jvm6fds9c76u28pq9kj4lams80oce.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.flutter.in_app_purchase",
+            "certificate_hash": "7f1e3a9cf75eec6c7f2c4520c892ef599722e85e"
+          }
+        },
+        {
+          "client_id": "1020875221111-ceqsik049jf72b01sq2bvurs8h0r56cl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZJSYg99kHpoXGHh5f1ybgk_BKS_fFU1w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1020875221111-ceqsik049jf72b01sq2bvurs8h0r56cl.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1020875221111-mvi8coot6d5voar4e8prla5mijhcu2f7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.revcat.revenueCatInAppPurchase"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1020875221111:android:7211f695b78502343bbe72",
+        "android_client_info": {
+          "package_name": "com.revcat.revenue_cat_in_app_purchase"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1020875221111-ceqsik049jf72b01sq2bvurs8h0r56cl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZJSYg99kHpoXGHh5f1ybgk_BKS_fFU1w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1020875221111-ceqsik049jf72b01sq2bvurs8h0r56cl.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1020875221111-mvi8coot6d5voar4e8prla5mijhcu2f7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.revcat.revenueCatInAppPurchase"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
