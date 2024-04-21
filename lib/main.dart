@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
+import 'package:provider/provider.dart';
 
 void main() => runApp(const MyApp());
 
@@ -11,13 +12,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      home: Scaffold(
-          appBar: AppBar(
-            title: const Text('Flutter Inapp Plugin by dooboolab'),
-          ),
-          body: const InApp()),
+    return ChangeNotifierProvider(
+      create: (context) => PaymentSuccessProvider(),
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        home: Scaffold(
+            appBar: AppBar(
+              title: const Text('Flutter Inapp Plugin by dooboolab'),
+            ),
+            body: const InApp()),
+      ),
     );
   }
 }
@@ -42,14 +46,19 @@ class _InAppState extends State<InApp> {
     'sub_1',
     'sub_4',
     'sub_5',
+    'sub_7'
   ];
 
   List<IAPItem> _items = [];
   List<PurchasedItem> _purchases = [];
 
+  Map<String, PurchasedItem> successData = {};
+  late PaymentSuccessProvider provider;
+
   @override
   void initState() {
     super.initState();
+    provider = context.read<PaymentSuccessProvider>();
     loadAllData();
     log('Init State Called');
   }
@@ -149,7 +158,7 @@ class _InAppState extends State<InApp> {
   fetchSub() {
     final data =
         FlutterInappPurchase.instance.getSubscriptions(_subscriptionLists);
-    log('Subscription Data : ${data.then((value) => log('Value : $value'))}');
+    log('Subscription Data : ${data.then((value) => log('Subscription product List : $value'))}');
   }
 
   listenSubscriptionSuccess() {
@@ -157,8 +166,8 @@ class _InAppState extends State<InApp> {
         FlutterInappPurchase.purchaseUpdated.listen((productItem) {
       FlutterInappPurchase.instance
           .acknowledgePurchaseAndroid('${productItem!.purchaseToken}');
-      log('Testing');
-      log('purchase-updated: $productItem');
+      successData['purchaseSuccess'] = productItem;
+      log('Purchase Success data : ${successData['purchaseSuccess']}');
     });
   }
 
@@ -235,7 +244,10 @@ class _InAppState extends State<InApp> {
 
   @override
   Widget build(BuildContext context) {
-    log('Subscription Data :$subscriptionSuccessData');
+    // log('Success :${successData['purchaseSuccess']}');
+    log('Purchase Token :${successData['purchaseSuccess']?.purchaseToken}');
+    log('Purchased Id :${successData['purchaseSuccess']?.transactionId}');
+
     double screenWidth = MediaQuery.of(context).size.width - 20;
     double buttonWidth = (screenWidth / 3) - 20;
 
@@ -409,7 +421,7 @@ class _InAppState extends State<InApp> {
           ElevatedButton(
               onPressed: () {
                 FlutterInappPurchase.instance.requestSubscription(
-                  'sub_2',
+                  'sub_7',
                 );
               },
               child: const Text('Plan 1')),
@@ -430,5 +442,43 @@ class _InAppState extends State<InApp> {
         ],
       ),
     );
+  }
+
+  // Future<bool> _verifyPurchase(PurchaseDetails purchaseDetails) async {
+  //   final url = Uri.parse('http://$serverIp:8080/verifypurchase');
+  //   const headers = {
+  //     'Content-type': 'application/json',
+  //     'Accept': 'application/json',
+  //   };
+  //   final response = await http.post(
+  //     url,
+  //     body: jsonEncode({
+  //       'source': 'google_play/app_store',
+  //       'productId': purchaseDetails.productID,
+  //       'verificationData':
+  //           successData['purchaseSuccess']!.purchaseToken,
+  //       // 'userId': uid,
+  //     }),
+  //     headers: headers,
+  //   );
+  //   if (response.statusCode == 200) {
+  //     print('Successfully verified purchase');
+  //     return true;
+  //   } else {
+  //     print('failed request: ${response.statusCode} - ${response.body}');
+  //     return false;
+  //   }
+  // }
+}
+
+class PaymentSuccessProvider extends ChangeNotifier {
+  Map<String, PurchasedItem> _paymentSuccessData = {};
+  Map<String, PurchasedItem> get paymentSuccessData => _paymentSuccessData;
+
+  setPaymentSuccessData(PurchasedItem data) {
+    _paymentSuccessData = data as Map<String, PurchasedItem>;
+
+    log('Payment success setter value : $paymentSuccessData');
+    notifyListeners();
   }
 }
