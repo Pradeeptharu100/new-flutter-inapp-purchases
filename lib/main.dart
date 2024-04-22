@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
 import 'package:in_app_purchase/auth/login_screen.dart';
 import 'package:in_app_purchase/auth/splash_screen.dart';
-import 'package:in_app_purchase/services/inapp_purchase_servicea.dart';
+import 'package:in_app_purchase/services/inapp_purchase_service.dart';
 import 'package:provider/provider.dart';
 
 void main() async {

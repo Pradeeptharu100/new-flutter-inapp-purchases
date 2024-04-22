@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:in_app_purchase/auth/register_screen.dart';
+import 'package:in_app_purchase/logger.dart';
 import 'package:in_app_purchase/main.dart';
 
 class LoginPage extends StatelessWidget {
@@ -31,9 +32,8 @@ class _LoginFormState extends State<LoginForm> {
   final _passwordController = TextEditingController();
 
   Future<void> _login() async {
+    EasyLoading.show(status: 'Loading', maskType: EasyLoadingMaskType.black);
     try {
-      EasyLoading.show(status: 'Loading', maskType: EasyLoadingMaskType.black);
-
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text,
@@ -57,13 +57,9 @@ class _LoginFormState extends State<LoginForm> {
                   user: userCredential.user!,
                 )),
       );
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (error) {
+      logger.f('Error message : $error');
       EasyLoading.dismiss();
-      if (e.code == 'user-not-found') {
-        print('No user found for that email.');
-      } else if (e.code == 'wrong-password') {
-        print('Wrong password provided for that user.');
-      }
     }
   }
 
